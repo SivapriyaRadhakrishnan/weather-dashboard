@@ -55,14 +55,18 @@ function App() {
     if (code <= 63) return "Rainy 🌧️";
     return "Unknown";
   };
-  useEffect(() => {
-    const savedCity = localStorage.getItem("city");
+useEffect(() => {
+  const savedCity = localStorage.getItem("city");
+  if (savedCity) {
+    setCity(savedCity);
+  }
+}, []);
 
-    if (savedCity) {
-      setCity(savedCity);
-      fetchWeather(savedCity);
-    }
-  }, []);
+useEffect(() => {
+  if (city) {
+    fetchWeather(city);
+  }
+}, [city]);
   return (
     <div className="container">
       <h1>Weather Dashboard 🌤️</h1>
