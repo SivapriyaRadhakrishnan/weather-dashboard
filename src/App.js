@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "./App.css";
 
 function App() {
@@ -8,14 +8,16 @@ function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchWeather = async (inputCity) => {
+  const fetchWeather = useCallback(async (inputCity) => {
     const searchCity = inputCity || city;
     if (!searchCity) return;
+
     try {
       setLoading(true);
       setError("");
       localStorage.setItem("city", searchCity);
 
+      // Get coordinates
       const geoRes = await fetch(
         `https://geocoding-api.open-meteo.com/v1/search?name=${searchCity}&count=1`
       );
@@ -27,7 +29,7 @@ function App() {
 
       const { latitude, longitude, name } = geoData.results[0];
 
-
+      // Get weather data
       const weatherRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m,relative_humidity_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=auto`
       );
@@ -41,13 +43,14 @@ function App() {
         humidity: data.current.relative_humidity_2m,
         condition: data.current.weather_code,
       });
+
       setForecast(data.daily);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [city]);
 
   const getWeatherCondition = (code) => {
     if (code === 0) return "Sunny ☀️";
@@ -55,18 +58,22 @@ function App() {
     if (code <= 63) return "Rainy 🌧️";
     return "Unknown";
   };
-useEffect(() => {
-  const savedCity = localStorage.getItem("city");
-  if (savedCity) {
-    setCity(savedCity);
-  }
-}, []);
 
-useEffect(() => {
-  if (city) {
-    fetchWeather(city);
-  }
-}, [city]);
+  // Load last searched city
+  useEffect(() => {
+    const savedCity = localStorage.getItem("city");
+    if (savedCity) {
+      setCity(savedCity);
+    }
+  }, []);
+
+  // Fetch weather when city changes
+  useEffect(() => {
+    if (city) {
+      fetchWeather(city);
+    }
+  }, [city, fetchWeather]);
+
   return (
     <div className="container">
       <h1>Weather Dashboard 🌤️</h1>
@@ -90,7 +97,7 @@ useEffect(() => {
           <h2>{weather.city}</h2>
           <h1>{weather.temp}°C</h1>
 
-          <p>{getWeatherCondition(weather.condition)}</p>  {/* 👈 ADD THIS */}
+          <p>{getWeatherCondition(weather.condition)}</p>
 
           <p>Wind: {weather.wind} km/h</p>
           <p>Humidity: {weather.humidity}%</p>
